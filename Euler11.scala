@@ -67,8 +67,10 @@ val verattr = for (x <- 0 to 21; y <- 0 to 21; c = if(x==0||x==21||y==0||y==21) 
 // LongにしないとVertexIdと認識してくれない
 
 val vertex: RDD[(VertexId,List[Int])] = sc.parallelize(verattr.to[collection.Seq])
+// immutableとかで型がなかなか合わないので注意
 
 // Edge
+// for + yieldで頑張る
 // right direction
 val ed_r = for (x <- 0 to 20; y <- 0 to 21) yield Edge(x+y*22,x+y*22+1,"right")
 val edge_r: RDD[Edge[String]] = sc.parallelize(ed_r)
@@ -88,6 +90,9 @@ val graph_d = Graph(vertex, edge_d).cache()
 val graph_dr = Graph(vertex, edge_dr).cache()
 val graph_dl = Graph(vertex, edge_dl).cache()
 
+
+// まず自分の数字を流して、以降は直近流れてきたものを流す
+// 最初は特別に処理しないと初期メッセージ1が流れちゃうのでif then処理
 val maxr = Pregel(graph_r,1,3,EdgeDirection.Out)(
 (id,attr,msg) => if (attr.length == 1) msg+:attr else attr:+msg,
 edge => Iterator((edge.dstId,edge.srcAttr.last)),
